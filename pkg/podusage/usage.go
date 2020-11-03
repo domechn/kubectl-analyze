@@ -31,6 +31,7 @@ type UsageLister struct {
 type usageShowData struct {
 	namespace string
 	name      string
+	container string
 
 	requestCPU    *resource.Quantity
 	requestMemory *resource.Quantity
@@ -59,7 +60,10 @@ func MustNew(restConfig *rest.Config) *UsageLister {
 
 func (l *UsageLister) getPods(name, namespace, nodeName string) ([]corev1.Pod, error) {
 	if name == "" && namespace == "" && nodeName == "" {
-		return nil, fmt.Errorf("must set search options")
+		return nil, fmt.Errorf("must set search options ")
+	}
+	if name != "" && namespace == "" {
+		return nil, fmt.Errorf("must set pod name when namespace is not empty ")
 	}
 	if name != "" && namespace != "" {
 		pod, err := l.client.CoreV1().Pods(namespace).Get(context.Background(), name, metav1.GetOptions{})
@@ -110,6 +114,7 @@ func (l *UsageLister) FindUsageNotMatchRequest(name, namespace, nodeName string,
 				return &usageShowData{
 					name:      pod.Name,
 					namespace: pod.Namespace,
+					container: container.Name,
 
 					requestMemory: req.Memory(),
 					requestCPU:    req.Cpu(),
@@ -149,6 +154,9 @@ func (l *UsageLister) FindUsageNotMatchRequest(name, namespace, nodeName string,
 }
 
 func (l *UsageLister) Print(data []*usageShowData) error {
+	if len(data) == 0 {
+		return l.writer.AppendAndFlush("Congratulations, all of the POD's resource definitions are perfect :)")
+	}
 	sort.Slice(data, func(i, j int) bool {
 		if data[i].usageCPUPercentage == "-" || data[i].usageMemroyPercentage == "-" {
 			return false
@@ -159,10 +167,10 @@ func (l *UsageLister) Print(data []*usageShowData) error {
 		return data[i].name < data[j].name
 	})
 
-	l.writer.SetHeader([]string{"namespace", "name", "cpu(percentage)", "cpu(usage/request/limit)", "memory(percentage)", "memory(usage/request/limit)"})
+	l.writer.SetHeader([]string{"namespace", "name", "container", "cpu(percentage)", "cpu(usage/request/limit)", "memory(percentage)", "memory(usage/request/limit)"})
 	for _, val := range data {
 		l.writer.Append(
-			val.namespace, val.name,
+			val.namespace, val.name, val.container,
 			val.usageCPUPercentage,
 			fmt.Sprintf("%dm / %dm / %dm", val.usageCPU.MilliValue(), val.requestCPU.MilliValue(), val.limitCPU.MilliValue()),
 			val.usageMemroyPercentage,
