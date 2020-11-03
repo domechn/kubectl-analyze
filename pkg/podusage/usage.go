@@ -3,9 +3,12 @@ package podusage
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"sort"
+	"sync"
 
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +44,7 @@ type usageShowData struct {
 }
 
 func MustNew(restConfig *rest.Config) *UsageLister {
+	restConfig.Burst = math.MaxInt64
 	mcli := metricsclientset.NewForConfigOrDie(restConfig)
 	kcli := kubernetes.NewForConfigOrDie(restConfig)
 
@@ -123,15 +127,25 @@ func (l *UsageLister) FindUsageNotMatchRequest(name, namespace, nodeName string,
 		return nil, nil
 	}
 
+	var lock sync.Mutex
+	var g errgroup.Group
+
 	var res []*usageShowData
 	for _, pod := range pods {
-		if usage, err := filter(pod); err != nil {
-			return nil, err
-		} else if usage != nil {
-			res = append(res, usage)
-		}
+		p := pod
+		g.Go(func() error {
+			if usage, err := filter(p); err != nil {
+				return err
+			} else if usage != nil {
+				lock.Lock()
+				res = append(res, usage)
+				lock.Unlock()
+			}
+			return nil
+		})
 	}
-	return res, nil
+	err = g.Wait()
+	return res, err
 }
 
 func (l *UsageLister) Print(data []*usageShowData) error {
