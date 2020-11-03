@@ -150,17 +150,23 @@ func (l *UsageLister) FindUsageNotMatchRequest(name, namespace, nodeName string,
 
 func (l *UsageLister) Print(data []*usageShowData) error {
 	sort.Slice(data, func(i, j int) bool {
+		if data[i].usageCPUPercentage == "-" || data[i].usageMemroyPercentage == "-" {
+			return false
+		}
+		if data[j].usageCPUPercentage == "-" || data[j].usageMemroyPercentage == "-" {
+			return true
+		}
 		return data[i].name < data[j].name
 	})
 
-	l.writer.SetHeader([]string{"Namespace", "Name", "CPU(usage/request)", "Requests/Limits", "Memory(usage/request)", "Requests/Limits"})
+	l.writer.SetHeader([]string{"namespace", "name", "cpu(percentage)", "cpu(usage/request/limit)", "memory(percentage)", "memory(usage/request/limit)"})
 	for _, val := range data {
 		l.writer.Append(
 			val.namespace, val.name,
-			fmt.Sprintf("%dm(%s)", val.usageCPU.MilliValue(), val.usageCPUPercentage),
-			fmt.Sprintf("%dm/%dm", val.requestCPU.MilliValue(), val.limitCPU.MilliValue()),
-			fmt.Sprintf("%dMi(%s)", val.usageMemory.Value()/(1024*1024), val.usageMemroyPercentage),
-			fmt.Sprintf("%dMi/%s", val.requestMemory.Value()/(1024*1024), val.limitMemory),
+			val.usageCPUPercentage,
+			fmt.Sprintf("%dm / %dm / %dm", val.usageCPU.MilliValue(), val.requestCPU.MilliValue(), val.limitCPU.MilliValue()),
+			val.usageMemroyPercentage,
+			fmt.Sprintf("%dMi / %dMi / %dMi", val.usageMemory.Value()/(1024*1024), val.requestMemory.Value()/(1024*1024), val.limitMemory.Value()/(1024*1024)),
 		)
 	}
 	return l.writer.Render()
