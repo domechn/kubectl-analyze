@@ -17,7 +17,7 @@ package cmd
 import (
 	"log"
 
-	"github.com/domgoer/kubectl-analyze/pkg/podusage"
+	"github.com/domechn/kubectl-analyze/pkg/podusage"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

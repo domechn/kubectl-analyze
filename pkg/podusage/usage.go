@@ -15,7 +15,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/domgoer/kubectl-analyze/pkg/tabwriter"
+	"github.com/domechn/kubectl-analyze/pkg/tabwriter"
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
 
 	"k8s.io/client-go/kubernetes"

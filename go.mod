@@ -1,4 +1,4 @@
-module github.com/domgoer/kubectl-analyze
+module github.com/domechn/kubectl-analyze
 
 go 1.14
 

@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/domgoer/kubectl-analyze/cmd"
+import "github.com/domechn/kubectl-analyze/cmd"
 
 func main() {
 	cmd.Execute()
